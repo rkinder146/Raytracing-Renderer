@@ -3,26 +3,39 @@
 #include "color.h"
 #include <iostream>
 
-bool hit_sphere(const ray& r, const vec3 center, double radius){
+double hit_sphere(const ray& r, const vec3 center, double radius){
     vec3 oc = center - r.origin();
     auto a = dot(r.direction(), r.direction());
     auto b = -2.0 * dot(r.direction(), oc);
     auto c = dot(oc, oc) - radius * radius;
     auto discriminant = b * b -4.0 * a * c;
-    return (discriminant >=0);
+    if (discriminant < 0){
+        return -1.0;
+    }
+    else {
+        return (-b - std::sqrt(discriminant)) / (2.0 * a);
+    }
 }
 
 color ray_color(const ray& r){
+    auto circle_pos = vec3(1, 0, 3);
+    auto radius = 1.0;
+    auto t = hit_sphere(r, circle_pos, radius);
+
+    if (t > 0.0){
+        vec3 N = unit_vector(r.at(t) - circle_pos);
+        return 0.5 * color(N.x() + 1.0, N.y() + 1.0, N.z() + 1.0);
+    }
     vec3 unit_dir = unit_vector(r.direction());
     auto a = (unit_dir.y()+1.0)*0.5;
-    return color(1.0, 1.0, 1.0) * (1.0-a) + color(0.0, 1.0, 0.0) * a;
+    return color(1.0, 1.0, 1.0) * (1.0-a) + color(0.0, 0.0, 1.0) * a;
 }
 
 int main() {
 
     // Image Setup
 
-    int image_width = 400;
+    int image_width = 800;
     double aspect_ratio = 16.0 / 9.0;
 
     int image_height = (int)(image_width/aspect_ratio);
@@ -45,7 +58,7 @@ int main() {
     // calculate top left of viewport
     auto viewport_upper_left = camera_pos + vec3(0, 0, focal_length) - viewport_u/2 - viewport_v/2;
 
-    auto pixel00pos = viewport_upper_left + pixel_delta_u + pixel_delta_v;
+    auto pixel00pos = viewport_upper_left + (pixel_delta_u + pixel_delta_v) * 0.5;
 
     // Render
 
@@ -56,12 +69,7 @@ int main() {
         for (int i = 0; i < image_width; i++) {
             auto pixel = ray(camera_pos, (pixel00pos + pixel_delta_u * i + pixel_delta_v * j) - camera_pos);
             
-            auto circle_pos = vec3(1, 2, 10);
-            auto radius = 3.0;
             auto pixel_color = ray_color(pixel);
-            if (hit_sphere(pixel, circle_pos, radius)){
-                pixel_color = color(0, 0, 1);
-            }
             
             write_color(std::cout, pixel_color);
         }
