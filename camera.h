@@ -73,7 +73,9 @@ class camera {
         color ray_color(const ray& r, const hittable& world) const {
             hit_record rec;
             if (world.hit(r, interval(0, infinity), rec)){
-                return 0.5 * color(rec.normal.x() + 1.0, rec.normal.y() + 1.0, rec.normal.z() + 1.0);
+                vec3 dir = random_on_hemisphere(rec.normal);
+                return 0.5 * ray_color(ray(r.at(rec.t), dir), world);
+                //return 0.5 * color(rec.normal.x() + 1.0, rec.normal.y() + 1.0, rec.normal.z() + 1.0);
             }
 
             return color(0.9,0.9,0.9);
