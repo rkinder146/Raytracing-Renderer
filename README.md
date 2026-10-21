@@ -4,6 +4,10 @@ A CPU path tracer written from scratch in C++ with no external libraries. It ren
 
 Built while working through Peter Shirley's [_Ray Tracing in One Weekend_](https://raytracing.github.io/books/RayTracingInOneWeekend.html).
 
+## Sample render
+
+![Final render](FinalRender.png)
+
 ## Features
 
 - **Ray–sphere intersection** with surface normals and front/back face detection
