@@ -1,16 +1,21 @@
 #pragma once
 
 #include "hittable.h"
+#include "material.h"
 
 class camera {
     public:
-        int image_width;
-        double aspect_ratio, focal_length, viewport_height;
-        point3 camera_pos;
-        int samples_per_pixels;
+        int image_width = 100;
+        double aspect_ratio = 1.0;
+        double focal_length = 1.0;
+        double viewport_height = 1.0;
+        point3 camera_pos = vec3(0,0,0);
+        int samples_per_pixel = 100;
+        int max_depth = 10;
 
-        camera(int image_width, double aspect_ratio, point3 camera_pos, double focal_length, double viewport_height, int samples_per_pixels) 
-            : image_width(image_width), aspect_ratio(aspect_ratio), camera_pos(camera_pos), focal_length(focal_length), viewport_height(viewport_height), samples_per_pixels(samples_per_pixels) {}
+        camera() {}
+        camera(int image_width, double aspect_ratio, point3 camera_pos, double focal_length, double viewport_height, int samples_per_pixel) 
+            : image_width(image_width), aspect_ratio(aspect_ratio), camera_pos(camera_pos), focal_length(focal_length), viewport_height(viewport_height), samples_per_pixel(samples_per_pixel) {}
 
         void render(const hittable& world){
             init();
@@ -20,12 +25,12 @@ class camera {
                 std::clog << "\rScanlines remaining: " << image_height - j << std::flush;
                 for (int i = 0; i < image_width; i++) {
                     color pixel_color(0.0, 0.0, 0.0);
-                    for (int s = 0; s < samples_per_pixels; s++){
+                    for (int s = 0; s < samples_per_pixel; s++){
                         auto pixel = sampleRay(i, j);
                         
-                        pixel_color += ray_color(pixel, world);
+                        pixel_color += ray_color(pixel, max_depth, world);
                     }
-                    pixel_color *= 1.0 / samples_per_pixels;
+                    pixel_color *= 1.0 / samples_per_pixel;
                     write_color(std::cout, pixel_color);
                 }
             }
@@ -70,14 +75,21 @@ class camera {
             return vec3(random_double() - 0.5, random_double() - 0.5, 0);
         }
 
-        color ray_color(const ray& r, const hittable& world) const {
+        color ray_color(const ray& r, int depth, const hittable& world) const {
+            if (depth <= 0){
+                return color(0, 0, 0);
+            }
             hit_record rec;
-            if (world.hit(r, interval(0, infinity), rec)){
-                vec3 dir = random_on_hemisphere(rec.normal);
-                return 0.5 * ray_color(ray(r.at(rec.t), dir), world);
-                //return 0.5 * color(rec.normal.x() + 1.0, rec.normal.y() + 1.0, rec.normal.z() + 1.0);
+            if (world.hit(r, interval(0.001, infinity), rec)){
+                ray scattered_ray;
+                color attenuation;
+                if (rec.mat->scatter(r, rec, attenuation, scattered_ray));
+                    return attenuation * ray_color(scattered_ray, depth - 1, world);
+                return color(0,0,0);
+                //return 0.5 * color(rec.normal.x() + 1.0, rec.normal.y() + 1.0, rec.normal.z() + 1.0); // normal view
             }
 
-            return color(0.9,0.9,0.9);
+            auto a = unit_vector(r.direction()).y() / 2 + 1;
+            return color(1,1,1) * (1-a) + a * color(0.5, 0.6, 0.9);
         }
 };
