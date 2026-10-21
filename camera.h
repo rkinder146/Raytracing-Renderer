@@ -6,16 +6,18 @@
 class camera {
     public:
         int image_width = 100;
+        double fov = 90;
         double aspect_ratio = 1.0;
-        double focal_length = 1.0;
-        double viewport_height = 1.0;
-        point3 camera_pos = vec3(0,0,0);
         int samples_per_pixel = 100;
         int max_depth = 10;
 
+        point3 camera_pos = vec3(0,0,0);
+        point3 look_at = vec3(0,0,1);
+        vec3 up = vec3(0,1,0);
+
         camera() {}
-        camera(int image_width, double aspect_ratio, point3 camera_pos, double focal_length, double viewport_height, int samples_per_pixel) 
-            : image_width(image_width), aspect_ratio(aspect_ratio), camera_pos(camera_pos), focal_length(focal_length), viewport_height(viewport_height), samples_per_pixel(samples_per_pixel) {}
+        // camera(int image_width, double aspect_ratio, point3 camera_pos, double fov, int samples_per_pixel) 
+        //     : image_width(image_width), aspect_ratio(aspect_ratio), camera_pos(camera_pos), fov(fov), samples_per_pixel(samples_per_pixel) {}
 
         void render(const hittable& world){
             init();
@@ -45,19 +47,28 @@ class camera {
         void init() {
             image_height = (int)(image_width/aspect_ratio);
             image_height = image_height > 0 ? image_height : 1;
+
+            auto focal_length = 1.0;
+            auto theta = degrees_to_radians(fov);
+            auto viewport_height = 2 * std::tan(theta/2) * focal_length;
             
             viewport_width = viewport_height * ((double)image_width/image_height);
             
+            // get unit vector of camera direction
+            auto view_dir_w = unit_vector(look_at - camera_pos);
+            auto view_dir_u = -unit_vector(cross(up, view_dir_w));
+            auto view_dir_v = cross(view_dir_w, view_dir_u);
+
             // viewport vectors right and down
-            viewport_u = vec3(viewport_width, 0, 0);
-            viewport_v = vec3(0, -viewport_height,0);
+            viewport_u = view_dir_u * viewport_width;
+            viewport_v = view_dir_v * viewport_height;
 
             // pixel ray offset
             pixel_delta_u = viewport_u / image_width;
             pixel_delta_v = viewport_v / image_height;
 
             // calculate top left of viewport
-            viewport_upper_left = camera_pos + vec3(0, 0, focal_length) - viewport_u/2 - viewport_v/2;
+            viewport_upper_left = camera_pos + view_dir_w * focal_length - viewport_u/2 - viewport_v/2;
 
             pixel00pos = viewport_upper_left + (pixel_delta_u + pixel_delta_v) * 0.5;
         }
@@ -83,13 +94,13 @@ class camera {
             if (world.hit(r, interval(0.001, infinity), rec)){
                 ray scattered_ray;
                 color attenuation;
-                if (rec.mat->scatter(r, rec, attenuation, scattered_ray));
+                if (rec.mat->scatter(r, rec, attenuation, scattered_ray))
                     return attenuation * ray_color(scattered_ray, depth - 1, world);
                 return color(0,0,0);
                 //return 0.5 * color(rec.normal.x() + 1.0, rec.normal.y() + 1.0, rec.normal.z() + 1.0); // normal view
             }
 
-            auto a = unit_vector(r.direction()).y() / 2 + 1;
-            return color(1,1,1) * (1-a) + a * color(0.5, 0.6, 0.9);
+            auto a = (unit_vector(r.direction()).y() + 1) / 2;
+            return color(0.8,0.8,1) * (1-a) + a * color(0.3, 0.4, 1);
         }
 };

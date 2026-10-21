@@ -127,8 +127,14 @@ inline vec3 random_on_hemisphere(const vec3& normal) {
     return random_unit_vec;
 }
 
-inline vec3 reflect(const vec3& v, const vec3& normal){
+inline vec3 reflect(const vec3& v, const vec3& normal) {
     return v- 2 * dot(v, normal) * normal;
+}
+
+inline vec3 refract(const vec3& v, const vec3& normal, double refractive_ratio) {
+    vec3 res = (v + (dot(-v, normal)) * normal) * refractive_ratio;
+    res += -normal * std::sqrt(std::fabs(1.0 - res.length_squared()));
+    return res;
 }
 
 #endif
