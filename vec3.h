@@ -119,6 +119,16 @@ inline vec3 random_unit_vector() {
     }
 }
 
+inline vec3 random_on_unit_circle() {
+    while(true){
+        auto res = vec3(random_double(), random_double(), 0);
+        auto magn = res.length_squared();
+        if (magn > 1e-160 && magn < 1){
+            return res;
+        }
+    }
+}
+
 inline vec3 random_on_hemisphere(const vec3& normal) {
     vec3 random_unit_vec = random_unit_vector();
     if (dot(normal, random_unit_vec) < 0) {
